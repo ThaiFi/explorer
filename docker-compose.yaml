@@ -1,0 +1,78 @@
+version: '3.8'
+services:
+  postgres:
+    container_name: postgres
+    image: postgres:13.2
+    restart: always
+    environment:
+      - TZ=Asia/Bangkok
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=xxxxxx
+    volumes:
+      - ./pg-data:/var/lib/postgresql/data
+    healthcheck:                                   
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s                                
+      timeout: 5s                                  
+      retries: 5
+
+  migrations:
+    container_name: blockscout-migrate
+    image: blockscout_tfi:1
+    environment:
+      - TZ=Asia/Bangkok
+      - MIX_ENV=prod
+      - DATABASE_URL=postgresql://postgres:xxxxxx@postgres:5432/explorer?ssl=false
+      - NETWORK=Mainnet
+      - SUBNETWORK=Thaifi
+      - ETHEREUM_JSONRPC_VARIANT=geth
+      - ETHEREUM_JSONRPC_HTTP_URL=https://rpc.thaifi.com
+      - ETHEREUM_JSONRPC_WS_URL=ws://ws.thaifi.com
+      - COIN=TFI
+      - BLOCK_TRANSFORMER=clique
+      - BLOCKSCOUT_HOST=exp.thaifi.com
+      - BLOCKSCOUT_PROTOCOL=https
+      - PORT=4000
+      #- LOGO=/images/TBWG-03.png
+      #- LOGO_FOOTER=/images/TBWG-03.png
+    ports:
+      - 4000:4000
+    command: sh -c "echo $$MIX_ENV && mix do ecto.create, ecto.migrate"
+    
+  blockscout:
+    container_name: blockscout
+    image: blockscout_tfi:13-thaifi-3.0
+    #image: blockscout_tfi:11-thaifi
+    #image: blockscout_tfi:6
+    #image: blockscout_tfi:3
+    restart: always
+    environment:
+      - TZ=Asia/Bangkok
+      - MIX_ENV=prod
+      - DATABASE_URL=postgresql://postgres:xxxxxx@postgres:5432/explorer?ssl=false
+      - NETWORK=Mainnet
+      - SUBNETWORK=Thaifi
+      - ETHEREUM_JSONRPC_VARIANT=geth
+      - ETHEREUM_JSONRPC_HTTP_URL=https://rpc.thaifi.com
+      - ETHEREUM_JSONRPC_WS_URL=ws://ws.thaifi.com
+      - COIN=TFI
+      - BLOCK_TRANSFORMER=clique
+      - BLOCKSCOUT_HOST=exp.thaifi.com
+      - BLOCKSCOUT_PROTOCOL=https
+      - PORT=4000
+      - LOGO=/images/logo-thaifi-01.png
+      - LOGO_FOOTER=/images/logo-thaifi-01.png
+      - LINK_TO_OTHER_EXPLORERS=false
+      - SUPPORTED_CHAINS=[]
+      - BLOCKSCOUT_VERSION=3.7.1-beta
+      - SHOW_TXS_CHART=true
+      #- SHOW_PRICE_CHART=true
+      - DISABLE_EXCHANGE_RATES=true
+      - DISABLE_KNOWN_TOKENS=true
+      #- SHOW_TXS_CHART=false
+      - SHOW_PRICE_CHART=false
+      #- HISTORY_FETCH_INTERVAL=0
+      - ENABLE_TXS_STATS=true
+    ports:
+      - 127.0.0.1:4000:4000
+    command: sh -c "mix phx.server"
